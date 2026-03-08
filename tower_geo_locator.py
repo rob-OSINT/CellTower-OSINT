@@ -52,6 +52,185 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 
 # ══════════════════════════════════════════════════════════
+#   OPERATOR LOOKUP DATABASE (MCC + MNC)
+# ══════════════════════════════════════════════════════════
+
+OPERATORS = {
+    # ── India ──────────────────────────────────────────────
+    ("404", "01"): "Vodafone India", ("404", "02"): "Airtel India",
+    ("404", "03"): "Airtel India",   ("404", "04"): "Idea Cellular",
+    ("404", "05"): "Vodafone India", ("404", "07"): "BSNL India",
+    ("404", "10"): "Airtel India",   ("404", "11"): "Vodafone India",
+    ("404", "12"): "Idea Cellular",  ("404", "13"): "Vodafone India",
+    ("404", "14"): "Idea Cellular",  ("404", "15"): "Vodafone India",
+    ("404", "16"): "Airtel India",   ("404", "17"): "AIRCEL India",
+    ("404", "18"): "Reliance India", ("404", "19"): "Idea Cellular",
+    ("404", "20"): "Vodafone India", ("404", "21"): "MTNL Mumbai",
+    ("404", "22"): "Idea Cellular",  ("404", "24"): "Idea Cellular",
+    ("404", "25"): "AIRCEL India",   ("404", "27"): "BSNL India",
+    ("404", "28"): "AIRCEL India",   ("404", "29"): "AIRCEL India",
+    ("404", "30"): "Vodafone India", ("404", "31"): "Airtel India",
+    ("404", "34"): "CellOne India",  ("404", "36"): "Reliance India",
+    ("404", "37"): "Aircel India",   ("404", "38"): "BSNL India",
+    ("404", "40"): "Airtel India",   ("404", "41"): "Airtel India",
+    ("404", "42"): "Airtel India",   ("404", "43"): "Vodafone India",
+    ("404", "44"): "Vodafone India", ("404", "45"): "Airtel India",
+    ("404", "46"): "Vodafone India", ("404", "49"): "Airtel India",
+    ("404", "50"): "Reliance Jio",   ("404", "51"): "BSNL India",
+    ("404", "52"): "Reliance India", ("404", "53"): "BSNL India",
+    ("404", "54"): "BSNL India",     ("404", "55"): "BSNL India",
+    ("404", "56"): "Idea Cellular",  ("404", "57"): "BSNL India",
+    ("404", "58"): "BSNL India",     ("404", "59"): "BSNL India",
+    ("404", "60"): "Vodafone India", ("404", "62"): "Airtel India",
+    ("404", "64"): "Idea Cellular",  ("404", "66"): "Vodafone India",
+    ("404", "67"): "Vodafone India", ("404", "68"): "MTNL Delhi",
+    ("404", "69"): "MTNL Mumbai",    ("404", "70"): "Airtel India",
+    ("404", "71"): "BSNL India",     ("404", "72"): "BSNL India",
+    ("404", "73"): "Vodafone India", ("404", "74"): "Idea Cellular",
+    ("404", "75"): "Airtel India",   ("404", "76"): "Airtel India",
+    ("404", "77"): "Airtel India",   ("404", "78"): "Idea Cellular",
+    ("404", "79"): "BSNL India",     ("404", "80"): "Idea Cellular",
+    ("404", "81"): "BSNL India",     ("404", "82"): "Idea Cellular",
+    ("404", "83"): "Reliance Jio",   ("404", "84"): "Vodafone India",
+    ("404", "85"): "Reliance India", ("404", "86"): "Vodafone India",
+    ("404", "87"): "Idea Cellular",  ("404", "88"): "Vodafone India",
+    ("404", "89"): "Idea Cellular",  ("404", "90"): "Airtel India",
+    ("404", "91"): "Airtel India",   ("404", "92"): "Airtel India",
+    ("404", "93"): "Airtel India",   ("404", "94"): "Airtel India",
+    ("404", "95"): "Airtel India",   ("404", "96"): "Idea Cellular",
+    ("404", "97"): "Aircel India",   ("404", "98"): "BSNL India",
+    ("405", "01"): "Reliance Jio",   ("405", "025"): "Vodafone India",
+    ("405", "027"): "Vodafone India",("405", "030"): "Vodafone India",
+    ("405", "031"): "Airtel India",  ("405", "032"): "Airtel India",
+    ("405", "033"): "Airtel India",  ("405", "034"): "Airtel India",
+    ("405", "035"): "Airtel India",  ("405", "036"): "Airtel India",
+    ("405", "037"): "Airtel India",  ("405", "038"): "Airtel India",
+    ("405", "039"): "Airtel India",  ("405", "041"): "Airtel India",
+    ("405", "042"): "Airtel India",  ("405", "51"): "Airtel India",
+    ("405", "52"): "Airtel India",   ("405", "53"): "Airtel India",
+    ("405", "54"): "Airtel India",   ("405", "55"): "Airtel India",
+    ("405", "56"): "Airtel India",   ("405", "66"): "Vodafone India",
+    ("405", "67"): "Vodafone India", ("405", "70"): "Airtel India",
+    ("405", "750"): "Reliance Jio",  ("405", "751"): "Reliance Jio",
+    ("405", "752"): "Reliance Jio",  ("405", "753"): "Reliance Jio",
+    ("405", "754"): "Reliance Jio",  ("405", "755"): "Reliance Jio",
+    ("405", "756"): "Reliance Jio",  ("405", "799"): "Reliance Jio",
+    ("405", "800"): "Airtel India",  ("405", "801"): "Airtel India",
+    ("405", "802"): "Airtel India",  ("405", "803"): "Airtel India",
+    ("405", "804"): "Airtel India",  ("405", "805"): "Airtel India",
+    ("405", "806"): "Airtel India",  ("405", "807"): "Airtel India",
+    ("405", "808"): "Airtel India",  ("405", "809"): "Airtel India",
+    ("405", "810"): "Airtel India",  ("405", "811"): "Airtel India",
+    ("405", "812"): "Airtel India",  ("405", "813"): "Airtel India",
+    ("405", "814"): "Airtel India",  ("405", "815"): "Airtel India",
+    ("405", "816"): "Airtel India",  ("405", "817"): "Airtel India",
+    ("405", "818"): "Airtel India",  ("405", "819"): "Airtel India",
+    ("405", "820"): "Airtel India",  ("405", "821"): "Airtel India",
+    ("405", "822"): "Airtel India",  ("405", "845"): "Airtel India",
+    ("405", "846"): "Airtel India",  ("405", "847"): "Airtel India",
+    ("405", "848"): "Airtel India",  ("405", "849"): "Airtel India",
+    ("405", "850"): "Airtel India",  ("405", "851"): "Airtel India",
+    ("405", "852"): "Airtel India",  ("405", "853"): "Airtel India",
+    ("405", "875"): "Vodafone India",("405", "876"): "Vodafone India",
+    ("405", "877"): "Vodafone India",("405", "878"): "Vodafone India",
+    ("405", "879"): "Vodafone India",("405", "880"): "Vodafone India",
+    ("405", "881"): "Vodafone India",("405", "909"): "Vi (Vodafone-Idea)",
+    # ── USA ────────────────────────────────────────────────
+    ("310", "010"): "AT&T USA",      ("310", "012"): "Verizon USA",
+    ("310", "013"): "MobileOne USA", ("310", "020"): "Union Telephone",
+    ("310", "030"): "AT&T USA",      ("310", "032"): "IT&E Overseas",
+    ("310", "040"): "T-Mobile USA",  ("310", "060"): "Consolidated Telcom",
+    ("310", "070"): "AT&T USA",      ("310", "080"): "AT&T USA",
+    ("310", "090"): "AT&T USA",      ("310", "100"): "Plateau Wireless",
+    ("310", "110"): "IT&E Overseas", ("310", "120"): "Sprint USA",
+    ("310", "150"): "AT&T USA",      ("310", "160"): "T-Mobile USA",
+    ("310", "170"): "T-Mobile USA",  ("310", "180"): "T-Mobile USA",
+    ("310", "190"): "AT&T USA",      ("310", "200"): "T-Mobile USA",
+    ("310", "210"): "T-Mobile USA",  ("310", "220"): "T-Mobile USA",
+    ("310", "230"): "T-Mobile USA",  ("310", "240"): "T-Mobile USA",
+    ("310", "250"): "T-Mobile USA",  ("310", "260"): "T-Mobile USA",
+    ("310", "270"): "T-Mobile USA",  ("310", "280"): "AT&T USA",
+    ("310", "290"): "T-Mobile USA",  ("310", "300"): "T-Mobile USA",
+    ("310", "310"): "T-Mobile USA",  ("310", "320"): "T-Mobile USA",
+    ("310", "330"): "T-Mobile USA",  ("310", "340"): "T-Mobile USA",
+    ("310", "350"): "T-Mobile USA",  ("310", "380"): "AT&T USA",
+    ("310", "390"): "T-Mobile USA",  ("310", "400"): "T-Mobile USA",
+    ("310", "410"): "AT&T USA",      ("310", "420"): "T-Mobile USA",
+    ("310", "490"): "T-Mobile USA",  ("310", "560"): "AT&T USA",
+    ("310", "580"): "T-Mobile USA",  ("310", "590"): "T-Mobile USA",
+    ("310", "660"): "T-Mobile USA",  ("310", "800"): "T-Mobile USA",
+    ("310", "890"): "Verizon USA",   ("310", "910"): "T-Mobile USA",
+    ("310", "950"): "AT&T USA",      ("311", "480"): "Verizon USA",
+    # ── UK ─────────────────────────────────────────────────
+    ("234", "10"): "O2 UK",          ("234", "15"): "Vodafone UK",
+    ("234", "20"): "3 UK",           ("234", "30"): "EE UK",
+    ("234", "50"): "JT Group UK",    ("234", "55"): "Sure UK",
+    ("234", "76"): "BT Mobile UK",
+    # ── Pakistan ───────────────────────────────────────────
+    ("410", "01"): "Mobilink Pakistan", ("410", "03"): "Ufone Pakistan",
+    ("410", "06"): "Telenor Pakistan",  ("410", "07"): "Warid Pakistan",
+    ("410", "08"): "Zong Pakistan",
+    # ── Bangladesh ─────────────────────────────────────────
+    ("470", "01"): "Grameenphone",   ("470", "02"): "Robi",
+    ("470", "03"): "Banglalink",     ("470", "05"): "Teletalk",
+    ("470", "07"): "Airtel Bangladesh",
+    # ── China ──────────────────────────────────────────────
+    ("460", "00"): "China Mobile",   ("460", "01"): "China Unicom",
+    ("460", "02"): "China Mobile",   ("460", "03"): "China Telecom",
+    ("460", "05"): "China Telecom",  ("460", "06"): "China Unicom",
+    ("460", "07"): "China Mobile",   ("460", "11"): "China Telecom",
+    # ── Australia ──────────────────────────────────────────
+    ("505", "01"): "Telstra Australia", ("505", "02"): "Optus Australia",
+    ("505", "03"): "Vodafone Australia",("505", "06"): "Telstra Australia",
+    # ── Canada ─────────────────────────────────────────────
+    ("302", "220"): "Telus Canada",  ("302", "320"): "Rogers Canada",
+    ("302", "370"): "Fido Canada",   ("302", "490"): "WIND Canada",
+    ("302", "610"): "Bell Canada",   ("302", "720"): "Rogers Canada",
+    # ── Germany ────────────────────────────────────────────
+    ("262", "01"): "T-Mobile Germany", ("262", "02"): "Vodafone Germany",
+    ("262", "03"): "O2 Germany",       ("262", "07"): "O2 Germany",
+    # ── France ─────────────────────────────────────────────
+    ("208", "01"): "Orange France",  ("208", "10"): "SFR France",
+    ("208", "15"): "Free Mobile France",("208", "20"): "Bouygues France",
+    # ── UAE ────────────────────────────────────────────────
+    ("424", "02"): "Etisalat UAE",   ("424", "03"): "du UAE",
+    # ── Saudi Arabia ───────────────────────────────────────
+    ("420", "01"): "STC Saudi",      ("420", "03"): "Mobily Saudi",
+    ("420", "04"): "Zain Saudi",
+    # ── Nigeria ────────────────────────────────────────────
+    ("621", "20"): "Airtel Nigeria", ("621", "30"): "MTN Nigeria",
+    ("621", "50"): "Glo Nigeria",    ("621", "60"): "9mobile Nigeria",
+    # ── South Africa ───────────────────────────────────────
+    ("655", "01"): "Vodacom SA",     ("655", "07"): "Cell C SA",
+    ("655", "10"): "MTN SA",         ("655", "21"): "Neotel SA",
+    # ── Brazil ─────────────────────────────────────────────
+    ("724", "05"): "Claro Brazil",   ("724", "06"): "Vivo Brazil",
+    ("724", "10"): "TIM Brazil",     ("724", "11"): "Vivo Brazil",
+    # ── Japan ──────────────────────────────────────────────
+    ("440", "10"): "NTT Docomo",     ("440", "20"): "SoftBank Japan",
+    ("440", "50"): "KDDI Japan",     ("440", "51"): "KDDI Japan",
+    # ── South Korea ────────────────────────────────────────
+    ("450", "05"): "SKT Korea",      ("450", "08"): "KT Korea",
+    ("450", "11"): "LG U+ Korea",
+    # ── Singapore ──────────────────────────────────────────
+    ("525", "01"): "Singtel",        ("525", "03"): "StarHub",
+    ("525", "05"): "M1 Singapore",
+    # ── Malaysia ───────────────────────────────────────────
+    ("502", "12"): "Maxis Malaysia", ("502", "13"): "Celcom Malaysia",
+    ("502", "16"): "Digi Malaysia",  ("502", "19"): "Celcom Malaysia",
+}
+
+
+def get_operator(mcc, mnc):
+    """Lookup operator name from MCC/MNC."""
+    if not mcc or not mnc:
+        return "Unknown"
+    # Try with leading zeros stripped and with padding
+    key = (str(mcc), str(mnc))
+    return OPERATORS.get(key, OPERATORS.get((str(mcc), str(mnc).zfill(2)), "Unknown Operator"))
+
+
+# ══════════════════════════════════════════════════════════
 #   BANNER
 # ══════════════════════════════════════════════════════════
 
@@ -443,14 +622,15 @@ def build_table(records, detector):
         header_style="bold magenta"
     )
 
-    table.add_column("Time",    style="dim",          width=20)
-    table.add_column("RAT",     style="cyan",         width=8)
-    table.add_column("MCC/MNC", style="white",        width=10)
-    table.add_column("LAC/TAC", style="white",        width=10)
-    table.add_column("Cell ID", style="bright_white", width=12)
-    table.add_column("RSRP",    style="green",        width=10)
-    table.add_column("Coords",  style="yellow",       width=22)
-    table.add_column("Status",  style="red",          width=20)
+    table.add_column("Time",     style="dim",          width=20)
+    table.add_column("RAT",      style="cyan",         width=8)
+    table.add_column("MCC/MNC",  style="white",        width=10)
+    table.add_column("Operator", style="bright_cyan",  width=18)
+    table.add_column("LAC/TAC",  style="white",        width=10)
+    table.add_column("Cell ID",  style="bright_white", width=12)
+    table.add_column("RSRP",     style="green",        width=10)
+    table.add_column("Coords",   style="yellow",       width=22)
+    table.add_column("Status",   style="red",          width=20)
 
     for r in records[-15:]:
         rsrp_val = r.get("rsrp", None)
@@ -467,11 +647,13 @@ def build_table(records, detector):
         alerts = r.get("alerts", "NONE")
         status = f"[bold red]⚠ {alerts}[/bold red]" if alerts != "NONE" else "[green]✓ CLEAN[/green]"
         coords = f"{r.get('lat', '')}, {r.get('lon', '')}" if r.get("lat") else "Not resolved"
+        operator = get_operator(r.get("mcc"), r.get("mnc"))
 
         table.add_row(
             str(r.get("timestamp", ""))[:19],
             str(r.get("rat", "N/A")),
             f"{r.get('mcc','?')}/{r.get('mnc','?')}",
+            operator,
             str(r.get("lac", "N/A")),
             str(r.get("cid", "N/A")),
             rsrp_str,
