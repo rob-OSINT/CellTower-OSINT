@@ -11,8 +11,6 @@ import sys
 import csv
 import time
 import json
-import socket
-import struct
 import datetime
 import argparse
 import subprocess
@@ -42,12 +40,12 @@ console = Console() if RICH else None
 #   CONFIG
 # ══════════════════════════════════════════════════════════
 
-OPENCELLID_API_KEY  = "YOUR_API_KEY_HERE"   # ← replace with your key
+OPENCELLID_API_KEY  = "YOUR_API_KEY_HERE"
 OPENCELLID_URL      = "https://opencellid.org/cell/get"
 OUTPUT_DIR          = Path("./output")
-SCAN_INTERVAL       = 5        # seconds between scans
-RSRP_RED_ALERT      = -110     # dBm — below this = suspicious
-RSRP_YELLOW_ALERT   = -95      # dBm — warning threshold
+SCAN_INTERVAL       = 5
+RSRP_RED_ALERT      = -110
+RSRP_YELLOW_ALERT   = -95
 VERSION             = "2.0.0"
 
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -110,7 +108,6 @@ def timestamp():
 # ══════════════════════════════════════════════════════════
 
 def detect_usb_interface():
-    """Detect USB tethering network interface."""
     try:
         result = subprocess.run(["ip", "link", "show"], capture_output=True, text=True)
         for line in result.stdout.split("\n"):
@@ -124,7 +121,6 @@ def detect_usb_interface():
 
 
 def detect_adb_device():
-    """Check if ADB device is connected."""
     try:
         result = subprocess.run(["adb", "devices"], capture_output=True, text=True)
         lines = [l for l in result.stdout.strip().split("\n")[1:] if l.strip() and "offline" not in l]
@@ -140,7 +136,6 @@ def detect_adb_device():
 
 
 def get_connection_mode():
-    """Auto-detect best available connection."""
     alert("Scanning for connected devices...", "info")
     usb = detect_usb_interface()
     adb = detect_adb_device()
@@ -167,7 +162,6 @@ def get_connection_mode():
 # ══════════════════════════════════════════════════════════
 
 def get_cell_info_adb(device_id):
-    """Extract cell tower info via ADB dumpsys."""
     try:
         cmd = ["adb", "-s", device_id, "shell", "dumpsys", "telephony.registry"]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
@@ -180,7 +174,6 @@ def get_cell_info_adb(device_id):
 
 
 def parse_telephony_dump(dump):
-    """Parse Android telephony dump for cell data."""
     info = {
         "mcc": None, "mnc": None, "lac": None,
         "cid": None,  "rsrp": None, "rat": "Unknown",
@@ -210,7 +203,6 @@ def parse_telephony_dump(dump):
 
 
 def _extract(line, key):
-    """Extract value after key in a line."""
     try:
         part = line.split(key)[1]
         return part.split()[0].strip(",;")
@@ -219,18 +211,12 @@ def _extract(line, key):
 
 
 def get_cell_info_usb(interface):
-    """
-    Attempt to read cell info via USB tethered interface.
-    Falls back to AT command interface if available.
-    """
-    # Try reading from /sys/class/net for signal info
     info = {
         "mcc": None, "mnc": None, "lac": None,
         "cid": None,  "rsrp": None, "rat": "Unknown",
         "timestamp": timestamp()
     }
 
-    # Attempt AT commands via serial port
     serial_ports = ["/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyACM0", "/dev/ttyACM1"]
     for port in serial_ports:
         if Path(port).exists():
@@ -256,19 +242,18 @@ def get_cell_info_usb(interface):
 # ══════════════════════════════════════════════════════════
 
 def lookup_opencellid(mcc, mnc, lac, cid, rat="LTE"):
-    """Query OpenCellID API for tower coordinates."""
     if OPENCELLID_API_KEY == "YOUR_API_KEY_HERE":
-        alert("OpenCellID API key not set. Edit tower_geo_locator.py.", "warn")
+        alert("OpenCellID API key not set. Select option [3] from the menu.", "warn")
         return None
 
     radio = "NR" if "5G" in str(rat) else "LTE"
     params = {
-        "key":   OPENCELLID_API_KEY,
-        "mcc":   mcc,
-        "mnc":   mnc,
-        "lac":   lac,
+        "key":    OPENCELLID_API_KEY,
+        "mcc":    mcc,
+        "mnc":    mnc,
+        "lac":    lac,
         "cellid": cid,
-        "radio": radio,
+        "radio":  radio,
         "format": "json"
     }
 
@@ -291,12 +276,11 @@ def lookup_opencellid(mcc, mnc, lac, cid, rat="LTE"):
 
 class StingrayDetector:
     def __init__(self):
-        self.history        = []
-        self.known_towers   = {}
-        self.alerts         = []
+        self.history      = []
+        self.known_towers = {}
+        self.alerts       = []
 
     def analyze(self, cell_info, geo_info=None):
-        """Run all detection heuristics against current cell info."""
         findings = []
 
         rsrp = cell_info.get("rsrp")
@@ -305,7 +289,7 @@ class StingrayDetector:
         mnc  = cell_info.get("mnc")
         rat  = cell_info.get("rat", "Unknown")
 
-        # ── Rule 1: Signal too weak ─────────────────────────
+        # Rule 1: Signal too weak
         if rsrp and rsrp < RSRP_RED_ALERT:
             findings.append({
                 "rule": "WEAK_SIGNAL",
@@ -319,7 +303,7 @@ class StingrayDetector:
                 "detail": f"RSRP {rsrp} dBm is below normal threshold"
             })
 
-        # ── Rule 2: Unknown tower (not in OpenCellID) ───────
+        # Rule 2: Ghost tower
         if geo_info is None and cid:
             findings.append({
                 "rule": "GHOST_TOWER",
@@ -327,17 +311,17 @@ class StingrayDetector:
                 "detail": f"Cell ID {cid} has no OpenCellID entry — possible rogue tower"
             })
 
-        # ── Rule 3: Cell ID changed without moving ──────────
+        # Rule 3: Cell ID changed
         if len(self.history) >= 2:
             prev = self.history[-1]
             if prev.get("cid") != cid and prev.get("mcc") == mcc and prev.get("mnc") == mnc:
                 findings.append({
                     "rule": "CID_CHANGE",
                     "severity": "MEDIUM",
-                    "detail": f"Cell ID changed: {prev.get('cid')} → {cid} (stationary device)"
+                    "detail": f"Cell ID changed: {prev.get('cid')} → {cid}"
                 })
 
-        # ── Rule 4: Forced 2G/3G downgrade ──────────────────
+        # Rule 4: Forced downgrade
         if len(self.history) >= 1:
             prev_rat = self.history[-1].get("rat", "")
             if ("4G" in prev_rat or "5G" in prev_rat) and ("2G" in rat or "3G" in rat):
@@ -347,7 +331,7 @@ class StingrayDetector:
                     "detail": f"Network downgraded: {prev_rat} → {rat} — classic IMSI catcher signature"
                 })
 
-        # ── Rule 5: Sudden RSRP spike (too strong) ──────────
+        # Rule 5: Signal spike
         if rsrp and len(self.history) >= 1:
             prev_rsrp = self.history[-1].get("rsrp")
             if prev_rsrp and (rsrp - prev_rsrp) > 20:
@@ -370,7 +354,7 @@ class StingrayDetector:
 
 class Exporter:
     def __init__(self):
-        ts          = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts            = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.csv_path = OUTPUT_DIR / f"celltower_{ts}.csv"
         self.kml_path = OUTPUT_DIR / f"celltower_{ts}.kml"
         self.records  = []
@@ -390,7 +374,7 @@ class Exporter:
             f.write("""<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
 <Document>
-  <name>CellTower-OSINT Scan</name>
+  <n>CellTower-OSINT Scan</n>
   <Style id="normal"><IconStyle><color>ff00ff00</color></IconStyle></Style>
   <Style id="alert"><IconStyle><color>ff0000ff</color></IconStyle></Style>
 """)
@@ -401,7 +385,6 @@ class Exporter:
         rng    = geo_info["range"] if geo_info else ""
         alerts = "|".join([f["rule"] for f in findings]) if findings else "NONE"
 
-        # CSV
         row = {**cell_info, "lat": lat, "lon": lon, "range": rng, "alerts": alerts}
         with open(self.csv_path, "a", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=[
@@ -410,14 +393,13 @@ class Exporter:
             ])
             writer.writerow(row)
 
-        # KML
         if lat and lon:
-            style  = "#alert" if findings else "#normal"
-            desc   = f"MCC:{cell_info.get('mcc')} MNC:{cell_info.get('mnc')} " \
-                     f"CID:{cell_info.get('cid')} RSRP:{cell_info.get('rsrp')}dBm"
+            style = "#alert" if findings else "#normal"
+            desc  = f"MCC:{cell_info.get('mcc')} MNC:{cell_info.get('mnc')} " \
+                    f"CID:{cell_info.get('cid')} RSRP:{cell_info.get('rsrp')}dBm"
             with open(self.kml_path, "a") as f:
                 f.write(f"""  <Placemark>
-    <name>Cell {cell_info.get('cid')}</name>
+    <n>Cell {cell_info.get('cid')}</n>
     <description>{desc}</description>
     <styleUrl>{style}</styleUrl>
     <Point><coordinates>{lon},{lat},0</coordinates></Point>
@@ -445,14 +427,14 @@ def build_table(records, detector):
         header_style="bold magenta"
     )
 
-    table.add_column("Time",     style="dim",          width=20)
-    table.add_column("RAT",      style="cyan",         width=8)
-    table.add_column("MCC/MNC",  style="white",        width=10)
-    table.add_column("LAC/TAC",  style="white",        width=10)
-    table.add_column("Cell ID",  style="bright_white", width=12)
-    table.add_column("RSRP",     style="green",        width=10)
-    table.add_column("Coords",   style="yellow",       width=22)
-    table.add_column("Status",   style="red",          width=20)
+    table.add_column("Time",    style="dim",          width=20)
+    table.add_column("RAT",     style="cyan",         width=8)
+    table.add_column("MCC/MNC", style="white",        width=10)
+    table.add_column("LAC/TAC", style="white",        width=10)
+    table.add_column("Cell ID", style="bright_white", width=12)
+    table.add_column("RSRP",    style="green",        width=10)
+    table.add_column("Coords",  style="yellow",       width=22)
+    table.add_column("Status",  style="red",          width=20)
 
     for r in records[-15:]:
         rsrp_val = r.get("rsrp", "N/A")
@@ -467,11 +449,7 @@ def build_table(records, detector):
             rsrp_str = "N/A"
 
         alerts = r.get("alerts", "NONE")
-        if alerts != "NONE":
-            status = f"[bold red]⚠ {alerts}[/bold red]"
-        else:
-            status = "[green]✓ CLEAN[/green]"
-
+        status = f"[bold red]⚠ {alerts}[/bold red]" if alerts != "NONE" else "[green]✓ CLEAN[/green]"
         coords = f"{r.get('lat', '')}, {r.get('lon', '')}" if r.get("lat") else "Not resolved"
 
         table.add_row(
@@ -509,7 +487,6 @@ def scan_loop(mode, device, continuous=True):
             scan_count += 1
             alert(f"Scan #{scan_count} — {timestamp()}", "info")
 
-            # Get cell info
             if mode == "adb":
                 cell_info = get_cell_info_adb(device)
             else:
@@ -520,7 +497,6 @@ def scan_loop(mode, device, continuous=True):
                 time.sleep(SCAN_INTERVAL)
                 continue
 
-            # OpenCellID lookup
             geo_info = None
             if all([cell_info.get(k) for k in ["mcc","mnc","lac","cid"]]):
                 alert(f"Looking up CID {cell_info['cid']} on OpenCellID...", "info")
@@ -534,7 +510,6 @@ def scan_loop(mode, device, continuous=True):
                 else:
                     alert("Tower not found in OpenCellID database.", "warn")
 
-            # Stingray detection
             findings = detector.analyze(cell_info, geo_info)
             if findings:
                 for f in findings:
@@ -544,10 +519,8 @@ def scan_loop(mode, device, continuous=True):
             else:
                 alert("No anomalies detected.", "ok")
 
-            # Export
             exporter.write(cell_info, geo_info, findings)
 
-            # Rich table display
             if RICH:
                 console.clear()
                 print_banner()
@@ -630,8 +603,7 @@ def set_api_key():
 
     if key:
         OPENCELLID_API_KEY = key
-        # Patch the source file
-        src = Path(__file__)
+        src     = Path(__file__)
         content = src.read_text()
         content = content.replace('YOUR_API_KEY_HERE', key)
         src.write_text(content)
@@ -643,16 +615,17 @@ def set_api_key():
 # ══════════════════════════════════════════════════════════
 
 def main():
+    global SCAN_INTERVAL
+
     parser = argparse.ArgumentParser(
         description="CellTower-OSINT — 4G/5G SIGINT/GEOINT Tool"
     )
-    parser.add_argument("--mode",      choices=["usb","adb","auto"], default="auto")
-    parser.add_argument("--once",      action="store_true", help="Single scan then exit")
-    parser.add_argument("--interval",  type=int, default=SCAN_INTERVAL)
-    parser.add_argument("--no-menu",   action="store_true", help="Skip menu, scan immediately")
+    parser.add_argument("--mode",     choices=["usb","adb","auto"], default="auto")
+    parser.add_argument("--once",     action="store_true", help="Single scan then exit")
+    parser.add_argument("--interval", type=int, default=SCAN_INTERVAL)
+    parser.add_argument("--no-menu",  action="store_true", help="Skip menu, scan immediately")
     args = parser.parse_args()
 
-    global SCAN_INTERVAL
     SCAN_INTERVAL = args.interval
 
     print_banner()
@@ -660,7 +633,6 @@ def main():
     if not RICH:
         alert("Tip: Install 'rich' for full UI → pip install rich", "info")
 
-    # Auto or manual mode
     if args.mode == "auto" or not args.no_menu:
         mode, device = get_connection_mode()
         if not mode:
@@ -673,7 +645,6 @@ def main():
         scan_loop(mode, device, continuous=not args.once)
         return
 
-    # Interactive menu
     while True:
         choice = show_menu()
 
