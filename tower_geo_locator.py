@@ -164,7 +164,7 @@ def get_connection_mode():
 def get_cell_info_adb(device_id):
     try:
         cmd = ["adb", "-s", device_id, "shell", "dumpsys", "telephony.registry"]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         return parse_telephony_dump(result.stdout)
     except subprocess.TimeoutExpired:
         alert("ADB command timed out.", "warn")
@@ -174,32 +174,48 @@ def get_cell_info_adb(device_id):
 
 
 def parse_telephony_dump(dump):
+    import re
     info = {
         "mcc": None, "mnc": None, "lac": None,
         "cid": None,  "rsrp": None, "rat": "Unknown",
         "timestamp": timestamp()
     }
 
-    for line in dump.split("\n"):
-        line = line.strip()
-        if "mMcc=" in line:
-            info["mcc"] = _extract(line, "mMcc=")
-        if "mMnc=" in line:
-            info["mnc"] = _extract(line, "mMnc=")
-        if "mLac=" in line or "mTac=" in line:
-            key = "mTac=" if "mTac=" in line else "mLac="
-            info["lac"] = _extract(line, key)
-        if "mCid=" in line:
-            info["cid"] = _extract(line, "mCid=")
-        if "mRsrp=" in line:
-            try:
-                info["rsrp"] = int(_extract(line, "mRsrp="))
-            except (ValueError, TypeError):
-                pass
-        if "LTE" in line or "NR" in line or "5G" in line:
-            info["rat"] = "5G-NR" if ("NR" in line or "5G" in line) else "4G-LTE"
+    def extract_val(pattern, text):
+        m = re.search(pattern, text)
+        return m.group(1) if m else None
 
-    return info if info["cid"] else None
+    info["mcc"]  = extract_val(r'mMcc=(\d+)', dump)
+    info["mnc"]  = extract_val(r'mMnc=(\d+)', dump)
+
+    tac = extract_val(r'mTac=(\d+)', dump)
+    lac = extract_val(r'mLac=(\d+)', dump)
+    info["lac"]  = tac or lac
+
+    cid = extract_val(r'mCi=(\d+)', dump)
+    if not cid:
+        cid = extract_val(r'mCid=(\d+)', dump)
+    if not cid:
+        cid = extract_val(r'cellId=(\d+)', dump)
+    info["cid"] = cid
+
+    rsrp = extract_val(r'mRsrp=(-?\d+)', dump)
+    if rsrp:
+        try:
+            info["rsrp"] = int(rsrp)
+        except ValueError:
+            pass
+
+    if "NR" in dump or "5G" in dump:
+        info["rat"] = "5G-NR"
+    elif "LTE" in dump:
+        info["rat"] = "4G-LTE"
+    elif "UMTS" in dump or "WCDMA" in dump:
+        info["rat"] = "3G"
+    elif "EDGE" in dump or "GPRS" in dump:
+        info["rat"] = "2G"
+
+    return info if info["mcc"] else None
 
 
 def _extract(line, key):
@@ -437,8 +453,8 @@ def build_table(records, detector):
     table.add_column("Status",  style="red",          width=20)
 
     for r in records[-15:]:
-        rsrp_val = r.get("rsrp", "N/A")
-        if rsrp_val != "N/A":
+        rsrp_val = r.get("rsrp", None)
+        if rsrp_val is not None and isinstance(rsrp_val, int):
             if rsrp_val < RSRP_RED_ALERT:
                 rsrp_str = f"[bold red]{rsrp_val} dBm[/bold red]"
             elif rsrp_val < RSRP_YELLOW_ALERT:
