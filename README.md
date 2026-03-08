@@ -99,7 +99,7 @@ Open `tower_geo_locator.py` and replace the placeholder:
 API_KEY = "YOUR_OPENCELLID_API_KEY_HERE"
 ```
 
-Get a free key at: https://opencellid.org/register
+Get a free key at: https://my.opencellid.org/register
 
 ### 3. Connect your phone
 
