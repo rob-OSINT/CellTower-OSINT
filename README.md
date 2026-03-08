@@ -1,14 +1,5 @@
 <div align="center">
 
-```
-    ████████╗ ██████╗ ██╗    ██╗███████╗██████╗       ██████╗ ███████╗██╗███╗   ██╗████████╗
-       ██╔══╝██╔═══██╗██║    ██║██╔════╝██╔══██╗     ██╔═══██╗██╔════╝██║████╗  ██║╚══██╔══╝
-       ██║   ██║   ██║██║ █╗ ██║█████╗  ██████╔╝     ██║   ██║███████╗██║██╔██╗ ██║   ██║   
-       ██║   ██║   ██║██║███╗██║██╔══╝  ██╔══██╗     ██║   ██║╚════██║██║██║╚██╗██║   ██║   
-       ██║   ╚██████╔╝╚███╔███╔╝███████╗██║  ██║     ╚██████╔╝███████║██║██║ ╚████║   ██║   
-       ╚═╝    ╚═════╝  ╚══╝╚══╝ ╚══════╝╚═╝  ╚═╝      ╚═════╝ ╚══════╝╚═╝╚═╝  ╚═══╝   ╚═╝  
-```
-
 # 📡 CellTower-OSINT
 
 **4G/5G Metadata & GEOINT Mapping for Signal Auditing**
@@ -73,6 +64,7 @@
 
 - **OS:** Kali Linux (or any Debian-based distro)
 - **Python:** 3.8+
+- **Android:** 8.0+ (Android 12+ requires USB Debugging Security Settings enabled)
 - **Hardware:** Android phone with USB debugging or tethering enabled
 - **API Key:** [OpenCellID](https://my.opencellid.org/register) (free registration)
 
@@ -98,8 +90,6 @@ deactivate
 ```
 
 **Option B — Kali Linux system-wide:**
-
-> ⚠️ Only use this if you don't want a venv
 
 ```bash
 pip install -r requirements.txt --break-system-packages
